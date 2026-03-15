@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Report whether the Galaxy Book4 speaker fix modules are currently loaded.
+
+set -euo pipefail
+
+if [[ -d /sys/module/snd_hda_scodec_max98390 && -d /sys/module/snd_hda_scodec_max98390_i2c ]]; then
+  printf 'speakers: ON\n'
+else
+  printf 'speakers: OFF\n'
+fi
