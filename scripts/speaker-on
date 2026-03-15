@@ -1,60 +1,16 @@
 #!/usr/bin/env bash
-# Re-enable the Galaxy Book4 speaker fix and restart audio services.
-
 set -euo pipefail
 
-readonly MODULES_CONF="/etc/modules-load.d/max98390-hda.conf"
-readonly MODULES_CONF_DISABLED="${MODULES_CONF}.disabled"
-readonly BLACKLIST_FILE="/etc/modprobe.d/max98390-hda-local-blacklist.conf"
-readonly AUDIO_MODULES=(
-  "snd_hda_scodec_max98390"
-  "snd_hda_scodec_max98390_i2c"
-)
-readonly AUDIO_SERVICES=(
-  "max98390-hda-i2c-setup.service"
-  "max98390-hda-check-upstream.service"
-)
-readonly USER_AUDIO_UNITS=(
-  "wireplumber"
-  "pipewire"
-  "pipewire-pulse"
-)
+sudo rm -f /etc/modprobe.d/max98390-hda-off.conf
 
-require_root() {
-  if [[ "${EUID}" -ne 0 ]]; then
-    printf 'Please run as root.\n' >&2
-    exit 1
-  fi
-}
+sudo mv /etc/modules-load.d/max98390-hda.conf.disabled /etc/modules-load.d/max98390-hda.conf 2>/dev/null || true
 
-restart_audio_stack() {
-  local target_user="${SUDO_USER:-}"
-  local target_uid
+sudo modprobe snd_hda_scodec_max98390
+sudo modprobe snd_hda_scodec_max98390_i2c
 
-  if [[ -n "${target_user}" ]] && id "${target_user}" >/dev/null 2>&1; then
-    target_uid="$(id -u "${target_user}")"
-    XDG_RUNTIME_DIR="/run/user/${target_uid}" \
-    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${target_uid}/bus" \
-      runuser -u "${target_user}" -- systemctl --user restart "${USER_AUDIO_UNITS[@]}" \
-      >/dev/null 2>&1 || true
-  fi
+sudo systemctl enable --now max98390-hda-i2c-setup.service
+sudo systemctl enable --now max98390-hda-check-upstream.service
 
-  systemctl restart "${USER_AUDIO_UNITS[@]}" >/dev/null 2>&1 || true
-}
+systemctl --user restart wireplumber pipewire pipewire-pulse || true
 
-require_root
-
-if [[ -f "${MODULES_CONF_DISABLED}" && ! -e "${MODULES_CONF}" ]]; then
-  mv "${MODULES_CONF_DISABLED}" "${MODULES_CONF}"
-fi
-
-rm -f "${BLACKLIST_FILE}"
-
-for module in "${AUDIO_MODULES[@]}"; do
-  modprobe "${module}"
-done
-
-systemctl enable --now "${AUDIO_SERVICES[@]}" >/dev/null
-restart_audio_stack
-
-printf 'Speaker fix enabled.\n'
+echo "speakers ON"

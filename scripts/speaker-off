@@ -1,58 +1,17 @@
 #!/usr/bin/env bash
-# Disable the Galaxy Book4 speaker fix and restart audio services.
-
 set -euo pipefail
 
-readonly MODULES_CONF="/etc/modules-load.d/max98390-hda.conf"
-readonly MODULES_CONF_DISABLED="${MODULES_CONF}.disabled"
-readonly BLACKLIST_FILE="/etc/modprobe.d/max98390-hda-local-blacklist.conf"
-readonly AUDIO_SERVICES=(
-  "max98390-hda-i2c-setup.service"
-  "max98390-hda-check-upstream.service"
-)
-readonly USER_AUDIO_UNITS=(
-  "wireplumber"
-  "pipewire"
-  "pipewire-pulse"
-)
+sudo systemctl disable --now max98390-hda-i2c-setup.service || true
+sudo systemctl disable --now max98390-hda-check-upstream.service || true
 
-require_root() {
-  if [[ "${EUID}" -ne 0 ]]; then
-    printf 'Please run as root.\n' >&2
-    exit 1
-  fi
-}
+sudo mv /etc/modules-load.d/max98390-hda.conf /etc/modules-load.d/max98390-hda.conf.disabled 2>/dev/null || true
 
-restart_audio_stack() {
-  local target_user="${SUDO_USER:-}"
-  local target_uid
-
-  if [[ -n "${target_user}" ]] && id "${target_user}" >/dev/null 2>&1; then
-    target_uid="$(id -u "${target_user}")"
-    XDG_RUNTIME_DIR="/run/user/${target_uid}" \
-    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${target_uid}/bus" \
-      runuser -u "${target_user}" -- systemctl --user restart "${USER_AUDIO_UNITS[@]}" \
-      >/dev/null 2>&1 || true
-  fi
-
-  systemctl restart "${USER_AUDIO_UNITS[@]}" >/dev/null 2>&1 || true
-}
-
-require_root
-
-systemctl disable --now "${AUDIO_SERVICES[@]}" >/dev/null 2>&1 || true
-
-if [[ -f "${MODULES_CONF}" && ! -e "${MODULES_CONF_DISABLED}" ]]; then
-  mv "${MODULES_CONF}" "${MODULES_CONF_DISABLED}"
-fi
-
-cat <<'EOF' > "${BLACKLIST_FILE}"
+sudo tee /etc/modprobe.d/max98390-hda-off.conf >/dev/null <<'MODPROBE'
 blacklist snd_hda_scodec_max98390
 blacklist snd_hda_scodec_max98390_i2c
-EOF
+MODPROBE
 
-modprobe -r snd_hda_scodec_max98390_i2c snd_hda_scodec_max98390 >/dev/null 2>&1 || true
+sudo modprobe -r snd_hda_scodec_max98390_i2c snd_hda_scodec_max98390 || true
+systemctl --user restart wireplumber pipewire pipewire-pulse || true
 
-restart_audio_stack
-
-printf 'Speaker fix disabled.\n'
+echo "speakers OFF"
