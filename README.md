@@ -44,6 +44,8 @@ speaker-status
 
 The speaker toggle is optional manual convenience. It is useful if you want explicit control over enabling or fully disabling the installed speaker fix.
 
+It is not needed for battery savings on the current upstream speaker fix. According to the upstream maintainer, the current driver powers the amps down automatically when no audio is playing, so idle power draw is basically negligible.
+
 More notes: [docs/speaker.md](docs/speaker.md)
 
 ## Fingerprint Workaround Helpers
