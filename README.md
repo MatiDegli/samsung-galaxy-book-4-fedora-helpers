@@ -1,69 +1,76 @@
-# Samsung Galaxy Book4 Pro Fedora Linux Helpers
+# Samsung Galaxy Book4 Pro Fedora Helpers
 
-Small helper scripts for Samsung Galaxy Book4 Pro on Fedora Linux.
+Small helper scripts for a Samsung Galaxy Book4 Pro running Fedora Linux.
 
-This repo currently covers:
+This repository stays intentionally small and is split into two independent areas:
 
-- manually enabling, disabling, and checking the speaker fix from:
+- speaker toggle helpers
+- fingerprint workaround helpers
+
+## Scope
+
+This repo is for Samsung Galaxy Book4 Pro hardware on Fedora.
+
+It is a convenience layer around existing Linux fixes and workarounds. It does not try to replace the upstream speaker fix project or present the fingerprint workaround as an official Fedora solution.
+
+## Speaker Toggle Helpers
+
+The speaker helpers provide a simple manual way to enable, disable, and check the status of the speaker fix used by the `samsung-galaxy-book4-linux-fixes` project:
 
 https://github.com/Andycodeman/samsung-galaxy-book4-linux-fixes
 
-- setting up and rolling back the fingerprint workaround for Fedora on Galaxy Book4 hardware
+Scripts:
 
-## What this is
+- `scripts/speaker/speaker-on`
+- `scripts/speaker/speaker-off`
+- `scripts/speaker/speaker-status`
 
-This is just a convenience layer on top of existing Linux fixes and workarounds for Galaxy Book4 hardware.
-
-For speakers, it gives you 3 simple commands:
-
-- `speaker-on`
-- `speaker-off`
-- `speaker-status`
-
-The scripts manage the same pieces the original fix already installs, including:
-
-- MAX98390 modules
-- `max98390-hda-i2c-setup.service`
-- `max98390-hda-check-upstream.service`
-- `/etc/modules-load.d/max98390-hda.conf`
-- a local modprobe blacklist file when the fix is fully disabled
-
-For fingerprint support, it includes 2 helper scripts:
-
-- `book4-fingerprint-setup.sh`
-- `book4-fingerprint-rollback.sh`
-
-These scripts help you:
-
-- enable the `tenseventy7/libfprint-acer-egismoc` COPR
-- upgrade `libfprint`, `fprintd`, and `fprintd-pam`
-- enable or disable `authselect` fingerprint authentication
-- roll back to Fedora stable packages with `dnf distro-sync`
-
-## Important note
-
-These scripts are **not required for battery savings** on the current version of the driver.
-
-As explained by the maintainer of the original fix, the amps are now powered down automatically when no audio is playing, so idle power draw is basically negligible.
-
-That means this repo is mainly useful if you want:
-
-- explicit manual control over the fix
-- a quick way to fully enable/disable it
-- a simple status command
-- a simple way to set up or roll back the fingerprint workaround
-- peace of mind when using Bluetooth headphones, external speakers, or just preferring a fully unloaded state
-
-## Tested on
-
-- Samsung Galaxy Book4 Pro
-- Fedora
-
-## Commands
+Example use:
 
 ```bash
+./scripts/speaker/speaker-on
+./scripts/speaker/speaker-off
+./scripts/speaker/speaker-status
+```
+
+Optional install example:
+
+```bash
+install -m 755 scripts/speaker/speaker-* ~/.local/bin/
 speaker-on
 speaker-off
 speaker-status
-./scripts/book4-fingerprint-setup.sh
-./scripts/book4-fingerprint-rollback.sh
+```
+
+The speaker toggle is optional manual convenience. It is useful if you want explicit control over enabling or fully disabling the installed speaker fix.
+
+More notes: [docs/speaker.md](docs/speaker.md)
+
+## Fingerprint Workaround Helpers
+
+The fingerprint helpers install or roll back a Fedora fingerprint workaround for Galaxy Book4 hardware.
+
+Scripts:
+
+- `scripts/fingerprint/book4-fingerprint-setup.sh`
+- `scripts/fingerprint/book4-fingerprint-rollback.sh`
+
+Example use:
+
+```bash
+sudo ./scripts/fingerprint/book4-fingerprint-setup.sh
+sudo ./scripts/fingerprint/book4-fingerprint-rollback.sh
+```
+
+Optional install example:
+
+```bash
+sudo install -m 755 scripts/fingerprint/book4-fingerprint-setup.sh /usr/local/bin/book4-fingerprint-setup
+sudo install -m 755 scripts/fingerprint/book4-fingerprint-rollback.sh /usr/local/bin/book4-fingerprint-rollback
+sudo book4-fingerprint-setup
+sudo book4-fingerprint-rollback
+```
+
+The fingerprint setup uses the non-official `tenseventy7/libfprint-acer-egismoc` COPR. Review that source and treat it like any other third-party package repository.
+
+More notes: [docs/fingerprint.md](docs/fingerprint.md)
