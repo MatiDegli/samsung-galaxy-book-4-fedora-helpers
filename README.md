@@ -5,6 +5,7 @@ Small helper scripts for a Samsung Galaxy Book4 Pro running Fedora Linux.
 This repository stays intentionally small and is split into two independent areas:
 
 - speaker toggle helpers
+- battery charge cap helper
 - fingerprint workaround helpers
 
 ## Scope
@@ -47,6 +48,43 @@ The speaker toggle is optional manual convenience. It is useful if you want expl
 It is not needed for battery savings on the current upstream speaker fix. According to the upstream maintainer, the current driver powers the amps down automatically when no audio is playing, so idle power draw is basically negligible.
 
 More notes: [docs/speaker.md](docs/speaker.md)
+
+## Battery Charge Cap Helper
+
+The battery helper provides a simple manual way to enable, disable, toggle, and inspect the 80% battery charge cap exposed by the kernel power-supply interface.
+
+Script:
+
+- `scripts/battery/battery-cap`
+
+Example use:
+
+```bash
+./scripts/battery/battery-cap on
+./scripts/battery/battery-cap off
+./scripts/battery/battery-cap toggle
+./scripts/battery/battery-cap status
+```
+
+Optional install example:
+
+```bash
+install -m 755 scripts/battery/battery-cap ~/.local/bin/battery-cap
+battery-cap on
+battery-cap off
+battery-cap toggle
+battery-cap status
+```
+
+System-wide install alternative:
+
+```bash
+sudo install -m 755 scripts/battery/battery-cap /usr/local/bin/battery-cap
+```
+
+The helper uses `/sys/class/power_supply/BAT*/charge_control_end_threshold` when that interface is available. It sets the threshold to `80` when enabled and back to `100` when disabled.
+
+More notes: [docs/battery.md](docs/battery.md)
 
 ## Fingerprint Workaround Helpers
 

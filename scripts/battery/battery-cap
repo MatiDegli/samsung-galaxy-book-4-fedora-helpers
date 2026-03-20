@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET_THRESHOLD=80
+DISABLED_THRESHOLD=100
+
+find_threshold_file() {
+    local candidate
+
+    for candidate in /sys/class/power_supply/BAT*/charge_control_end_threshold; do
+        if [[ -f "$candidate" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    echo "Battery charge threshold control is not available on this system." >&2
+    exit 1
+}
+
+read_threshold() {
+    cat "$1"
+}
+
+write_threshold() {
+    printf '%s\n' "$2" | sudo tee "$1" >/dev/null
+}
+
+print_status() {
+    local current_threshold=$1
+
+    if [[ "$current_threshold" == "$TARGET_THRESHOLD" ]]; then
+        echo "battery charge cap: ON (${TARGET_THRESHOLD}%)"
+        return 0
+    fi
+
+    if [[ "$current_threshold" == "$DISABLED_THRESHOLD" ]]; then
+        echo "battery charge cap: OFF (${DISABLED_THRESHOLD}%)"
+        return 0
+    fi
+
+    echo "battery charge cap: CUSTOM (${current_threshold}%)"
+}
+
+usage() {
+    cat <<'EOF'
+Usage: battery-cap <on|off|toggle|status>
+
+Commands:
+  on      Set the battery charge end threshold to 80%
+  off     Set the battery charge end threshold to 100%
+  toggle  Switch between 80% and 100%
+  status  Show the current threshold
+EOF
+}
+
+main() {
+    local command=${1:-}
+    local threshold_file
+    local current_threshold
+
+    case "$command" in
+        on|off|toggle|status)
+            ;;
+        -h|--help|help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            exit 1
+            ;;
+    esac
+
+    threshold_file=$(find_threshold_file)
+    current_threshold=$(read_threshold "$threshold_file")
+
+    case "$command" in
+        on)
+            write_threshold "$threshold_file" "$TARGET_THRESHOLD"
+            echo "battery charge cap enabled (${TARGET_THRESHOLD}%)"
+            ;;
+        off)
+            write_threshold "$threshold_file" "$DISABLED_THRESHOLD"
+            echo "battery charge cap disabled (${DISABLED_THRESHOLD}%)"
+            ;;
+        toggle)
+            if [[ "$current_threshold" == "$TARGET_THRESHOLD" ]]; then
+                write_threshold "$threshold_file" "$DISABLED_THRESHOLD"
+                echo "battery charge cap disabled (${DISABLED_THRESHOLD}%)"
+            else
+                write_threshold "$threshold_file" "$TARGET_THRESHOLD"
+                echo "battery charge cap enabled (${TARGET_THRESHOLD}%)"
+            fi
+            ;;
+        status)
+            print_status "$current_threshold"
+            ;;
+    esac
+}
+
+main "$@"
